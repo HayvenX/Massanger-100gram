@@ -1,0 +1,263 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background: #e6ebf5;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: #fff;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 350px;
+  background: white;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 10px 15px;
+  background: #fff;
+}
+
+.sidebar-header h2 {
+  color: #3390ec;
+  margin-bottom: 12px;
+  font-size: 20px;
+}
+
+.sidebar-header input {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 22px;
+  border: none;
+  background: #f4f4f5;
+  outline: none;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.sidebar-header input:focus {
+  background: #fff;
+  border: 1px solid #3390ec;
+  padding: 9px 14px;
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin: 2px 8px;
+  border-radius: 10px;
+}
+
+.chat-item:hover {
+  background: #f4f4f5;
+}
+
+.chat-item.active {
+  background: #3390ec;
+  color: white;
+}
+
+.chat-item.active p {
+  color: #e3f2fd;
+}
+
+.avatar {
+  margin-right: 12px;  
+}
+
+.avatar img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.chat-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.chat-info h4 {
+  font-size: 15px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-info p {
+  font-size: 14px;
+  color: #8e8e93;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* CHAT AREA */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #8faabd;
+  position: relative;
+  height: 100vh;
+}
+
+/* WELCOME SCREEN */
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  text-align: center;
+}
+
+.welcome-content {
+  opacity: 0.8;
+}
+
+.vodka-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+.welcome-content h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.welcome-content p {
+  font-size: 16px;
+  color: #8e8e93;
+}
+
+/* CHAT WINDOW FIXES */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.chat-header {
+  background: white;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  z-index: 10;
+}
+
+.header-info h3 {
+  font-size: 16px;
+  color: #000;
+  margin-bottom: 2px;
+}
+
+.header-info span {
+  font-size: 13px;
+  color: #3390ec;
+}
+
+/* MESSAGES */
+.messageContainer {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  max-width: 65%;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+.user1 {
+  background: white;
+  color: black;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.user2 {
+  background: #e3ffc8;
+  color: black;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+/* INPUT */
+.input-wrapper {
+  padding: 15px 20px;
+  background: transparent;
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 8px 15px;
+}
+
+#msgInput {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  background: transparent;
+}
+
+.inputContainer button {
+  background: transparent;
+  color: #3390ec;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.inputContainer button:hover {
+  background: #f4f4f5;
+}
