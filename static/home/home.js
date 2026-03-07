@@ -7,12 +7,17 @@ let selectedId = ""
 
 chatList.addEventListener("click", (e) => {
     const clickedItem = e.target.closest('.chat-item')
-    
     if (!clickedItem) return
 
     selectedId = clickedItem.dataset.dialogId
 
     console.log("Dialog Selected ID:", selectedId)
+
+    container.innerHTML = ""
+
+    const currentChatMessages = db_messages.filter(msg => msg.dialogId === selectedId)
+
+    currentChatMessages.forEach(msg => messagesLoad(msg.content))
 
     const customEvent = new CustomEvent('dialogChange', { detail: { id: selectedId } })
     window.dispatchEvent(customEvent)
@@ -32,28 +37,22 @@ chatList.addEventListener("click", (e) => {
     container.scrollTo(0, container.scrollHeight)
 })
 
+let db_messages = []
+
 async function getData() {
   try {
     const messageResponse = await fetch('messages')
     const dialogResponse = await fetch('dialogs')
 
-    if (!messageResponse.ok) {
-      throw new Error(`Response status: ${messageResponse.status}`)
+    if (!messageResponse.ok || !dialogResponse.ok) {
+      throw new Error(`Response status error`)
     }
 
-    const db_messages = await messageResponse.json()
-    db_messages.map(msg => messagesLoad(msg.content))
-
-    if (!dialogResponse.ok) {
-      throw new Error(`Response status: ${dialogResponse.status}`)
-    }
-
+    db_messages = await messageResponse.json()
     const db_dialogs = await dialogResponse.json()
-    db_dialogs.map(dialog => dialogsLoad(db_dialogs))
-    console.log(db_dialogs)
 
-    container.scrollTo(0, container.scrollHeight)
-  } 
+    db_dialogs.forEach(dialog => dialogsLoad(dialog))
+  }
   catch (error) {
     console.error(error.message)
   }
@@ -99,6 +98,3 @@ form.addEventListener('submit', async function(e) {
       input.value = ""
   }
 })
-
-// const username = ""
-// socket.emit('set_username', username)
