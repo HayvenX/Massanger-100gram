@@ -17,8 +17,6 @@ chatList.addEventListener("click", (e) => {
     const customEvent = new CustomEvent('dialogChange', { detail: { id: selectedId } })
     window.dispatchEvent(customEvent)
 
-    dialogsLoad(selectedId)
-
     document.querySelectorAll('.chat-item').forEach(item => {
         item.classList.remove('active')
     })
