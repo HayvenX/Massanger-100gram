@@ -1,9 +1,10 @@
 const http = require('http')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto')
 const { Server } = require('socket.io')
 const { json } = require('stream/consumers')
-const db = require('./db')
+const db = require('./mysql-db')
 const cookie = require('cookie')
 
 const server = http.createServer(async function(req, res) {
@@ -49,16 +50,24 @@ async function signUp(req, res)
     data += chunk
   })
   req.on('end', async function() {
-    let parsedUserData = JSON.parse(data)
-    const hashedPassword = JSON.stringify((await db.hashThePassword(parsedUserData["password"])).hashedPassword)
-    const salt = JSON.stringify((await db.hashThePassword(parsedUserData["password"])).salt)
+    const parsedUserData = JSON.parse(data)
+    const { hashedPassword, salt } = await db.hashThePassword(parsedUserData.password)
 
-    if(db.loginExistanceCheck(parsedUserData["username"])) {
-      db.addUser(parsedUserData["username"], parsedUserData["email"], hashedPassword, 0, salt)
+    const doesUserExist = await db.loginExistanceCheck(parsedUserData.username)
+    if (doesUserExist) {
+      res.writeHead(302, { 'Location': '/sign_in' })
+      return res.end()
     }
-    
-    res.writeHead(200, {'Content-Type': 'application/json'})
-    res.end(data)
+
+    const newUserId = await db.addUser(parsedUserData.username, parsedUserData.email, hashedPassword, 0, salt)
+    const token = `${newUserId}.${parsedUserData.username}.${crypto.randomBytes(20).toString('hex')}`
+    validAuthTokens.push(token)
+
+    res.writeHead(302, {
+      'Location': '/',
+      'Set-Cookie': `token=${token}; HttpOnly; Path=/`
+    })
+    return res.end()
   })
 }
 
@@ -112,7 +121,7 @@ async function guarded(req, res) {
       case '/home.css': return res.end(fs.readFileSync(path.join(__dirname, 'static', 'home', 'home.css'), 'utf-8'))
       case '/home.js': return res.end(fs.readFileSync(path.join(__dirname, 'static', 'home', 'home.js'), 'utf-8'))
       case '/messages': return res.end(JSON.stringify(await db.getMessages()))
-      case '/dialogs': return res.end(JSON.stringify(await db.getDialogs()))
+      case '/dialogs': return res.end(JSON.stringify(await db.getDialogs(Number(credentionals.user_id))))
     }
   }
   else {
@@ -124,16 +133,24 @@ async function guarded(req, res) {
 const io = new Server(server)
 
 io.on('connection', socket => {
-  let author_id = 1
-  let dialog_id = 3
+  const creds = getCredentionals(socket.request.headers?.cookie || '')
+  const author_id = creds ? Number(creds.user_id) : 1
 
-  // socket.on('set_username', name => {
-  //   username = name
-  // })
+  socket.on('new_message', async message => {
+    if (!message || !message.dialogId || !message.content) return
 
-  socket.on('new_message', message => {
-    db.addMessage(message, author_id, dialog_id)
-    io.emit('sendMsg', message)
+    const dialogId = Number(message.dialogId)
+    const insertedId = await db.addMessage(message.content, author_id, dialogId)
+
+    const outMsg = {
+      id: insertedId,
+      content: message.content,
+      author_id: author_id,
+      dialog_id: dialogId,
+      dialogId: dialogId
+    }
+
+    io.emit('sendMsg', outMsg)
   })
 })
 

@@ -8,10 +8,13 @@ async function sendData() {
         body: JSON.stringify({username: form["username"].value, email: form["email"].value, password: form["password"].value, star_balance: 0})
     })
 
-    if(form["password"].value === form["passwordCheck"].value) {
+    if (form["password"].value === form["passwordCheck"].value) {
         form["passwordCheck"].removeAttribute('class')
-        const data = await response.text()
-        console.log(data)
+        if (response.ok) {
+            window.location.href = '/'
+        } else {
+            console.error('Failed to sign up:', response.status)
+        }
     }
     else {
         form["passwordCheck"].setAttribute('class', 'invalidPassword')

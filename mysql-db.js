@@ -19,9 +19,22 @@ module.exports = {
         }
     },
 
-    getDialogs: async () => {
+    getDialogs: async (currentUserId) => {
         try {
-            const [dialogsList] = await db.promise().query('SELECT * FROM dialog WHERE first_user_id = 1 OR second_user_id = 1;')
+            const [dialogsList] = await db.promise().query(
+                `SELECT
+                    d.id,
+                    CASE
+                      WHEN d.first_user_id = ? THEN u2.login
+                      ELSE u1.login
+                    END AS name,
+                    (SELECT content FROM message m WHERE m.dialog_id = d.id ORDER BY m.id DESC LIMIT 1) AS lastMessage
+                FROM dialog d
+                JOIN user u1 ON u1.id = d.first_user_id
+                JOIN user u2 ON u2.id = d.second_user_id
+                WHERE d.first_user_id = ? OR d.second_user_id = ?`,
+                [currentUserId, currentUserId, currentUserId]
+            )
             return dialogsList
         }
         catch(dbErr) {
@@ -30,7 +43,11 @@ module.exports = {
     },
 
     addMessage: async (msg, authorId, dialogId) => {
-        await db.promise().query('INSERT INTO message(content, author_id, dialog_id) VALUES (?, ?, ?)', [msg, authorId, dialogId])
+        const [result] = await db.promise().query(
+            'INSERT INTO message(content, author_id, dialog_id) VALUES (?, ?, ?)',
+            [msg, authorId, dialogId]
+        )
+        return result.insertId
     },
 
     loginExistanceCheck: async login => {
@@ -39,14 +56,17 @@ module.exports = {
     },
 
     addUser: async (login, email, password, star_balance, salt) => {
-        try
-        {
-            await db.promise().query('INSERT INTO user(login, email, password, star_balance, salt) VALUES (?, ?, ?, ?, ?)', [login, email, password, star_balance, salt])
+        try {
+            const [result] = await db.promise().query(
+                'INSERT INTO user(login, email, password, star_balance, salt) VALUES (?, ?, ?, ?, ?)',
+                [login, email, password, star_balance, salt]
+            )
             console.log('Account has been added successfully')
+            return result.insertId
         }
-        catch(e)
-        {
+        catch(e) {
             console.error(`User with login "${login}" already exists`)
+            return null
         }
     },
 
