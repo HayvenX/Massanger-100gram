@@ -4,7 +4,7 @@ const crypto = require('crypto')
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '1111',
+  password: 'Toxic20202022',
   database: 'chat'
 })
 
