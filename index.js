@@ -1,103 +1,62 @@
-const http = require('http')
 const path = require('path')
-const fs = require('fs')
 const crypto = require('crypto')
 const { Server } = require('socket.io')
 const { json } = require('stream/consumers')
 const db = require('./mysql-db')
 const cookie = require('cookie')
+const http = require('http')
+const express = require('express')
 
-const server = http.createServer(async function(req, res) {
-  if(req.url == '/sign_in' && req.method == 'GET') {
-    res.writeHead(200, {'Content-Type': 'text/html'})
-    return res.end(fs.readFileSync(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_in.html'), 'utf-8'))
-  }
-  else if(req.url == '/sign_in' && req.method == 'POST') {
-    return signIn(req, res)
-  }
+const app = express()
+const server = http.createServer(app)
 
-  else if(req.url == '/sign_up' && req.method == 'GET') {
-    res.writeHead(200, {'Content-Type': 'text/html'})
-    return res.end(fs.readFileSync(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_up.html'), 'utf-8'))
-  }
-  else if(req.url == '/sign_up' && req.method == 'POST') {
-    return signUp(req, res)
-  }
+app.use(express.json())
 
-  else if(req.url == '/styles.css' && req.method == 'GET') {
-    res.writeHead(200, {'Content-Type': 'text/css'})
-    return res.end(fs.readFileSync(path.join(__dirname, 'static', 'sign_in sign_up', 'styles.css'), 'utf-8'))
-  }
+app.use('/styles.css', express.static(path.join(__dirname, 'static', 'sign_in sign_up', 'styles.css')))
+app.use('/sign_in.js', express.static(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_in.js')))
+app.use('/sign_up.js', express.static(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_up.js')))
 
-  else if(req.url == '/sign_in.js' && req.method == 'GET') {
-    res.writeHead(200, {'Content-Type': 'text/js'})
-    return res.end(fs.readFileSync(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_in.js'), 'utf-8'))
-  }
-  else if(req.url == '/sign_up.js' && req.method == 'GET') {
-    res.writeHead(200, {'Content-Type': 'text/js'})
-    return res.end(fs.readFileSync(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_up.js'), 'utf-8'))
-  }
-
-  return guarded(req, res)
+app.get('/sign_in', (req, res) => {
+  res.sendFile(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_in.html'))
+})
+app.get('/sign_up', (req, res) => {
+  res.sendFile(path.join(__dirname, 'static', 'sign_in sign_up', 'sign_up.html'))
 })
 
+app.post('/sign_in', async (req, res) => {
+  try {
+    const user = req.body
+    const token = await db.getAuthToken(user)
+    validAuthTokens.push(token)
+    res.send(token)
+  }
+  catch(e) {
+    console.error(e)
+    res.status(500).send(`Error: ${e}`)
+  }
+})
 
-async function signUp(req, res)
-{
-  let data = ''
-
-  req.on('data', function(chunk) {
-    data += chunk
-  })
-  req.on('end', async function() {
-    const parsedUserData = JSON.parse(data)
+app.post('/sign_up', async (req, res) => {
+  try {
+    const parsedUserData = req.body
     const { hashedPassword, salt } = await db.hashThePassword(parsedUserData.password)
-
     const doesUserExist = await db.loginExistanceCheck(parsedUserData.username)
     if (doesUserExist) {
-      res.writeHead(302, { 'Location': '/sign_in' })
-      return res.end()
+      return res.status(400).send('User already exists')
     }
-
     const newUserId = await db.addUser(parsedUserData.username, parsedUserData.email, hashedPassword, 0, salt)
     const token = `${newUserId}.${parsedUserData.username}.${crypto.randomBytes(20).toString('hex')}`
     validAuthTokens.push(token)
-
-    res.writeHead(302, {
-      'Location': '/',
-      'Set-Cookie': `token=${token}; HttpOnly; Path=/`
-    })
-    return res.end()
-  })
-}
+    res.cookie('token', token, { httpOnly: true, path: '/' })
+    res.redirect('/')
+  }
+  catch(e) {
+    console.error(e)
+    res.status(500).send(`Error: ${e}`)
+  }
+})
 
 let validAuthTokens = []
-
-async function signIn(req, res) {
-  let data = ''
-
-  req.on('data', chunk => {
-    data += chunk
-  })
-  req.on('end', async () => {
-    try {
-      const user = JSON.parse(data)
-
-      const token = await db.getAuthToken(user)
-      validAuthTokens.push(token)
-
-      const hashedPassword = await db.hashThePassword(user.password)
-
-      res.writeHead(200)
-      res.end(token)
-    }
-    catch(e) {
-      console.log(e)
-      res.writeHead(500)
-      return res.end(`Error: ${e}`)
-    }
-  })
-}
 
 function getCredentionals(c = '') {
     const cookies = cookie.parse(c)
@@ -108,27 +67,33 @@ function getCredentionals(c = '') {
     return {user_id, login}
 }
 
-async function guarded(req, res) {
+async function guarded(req, res, next) {
   const credentionals = getCredentionals(req.headers?.cookie)
 
   if(!credentionals) {
-    res.writeHead(302, {'Location': '/sign_up'})
-    return res.end("Error 404")
+    return res.redirect('/sign_up')
   }
-  if(req.method === 'GET') {
-    switch(req.url) {
-      case '/': return res.end(fs.readFileSync(path.join(__dirname, 'static', 'home', 'home.html'), 'utf-8'))
-      case '/home.css': return res.end(fs.readFileSync(path.join(__dirname, 'static', 'home', 'home.css'), 'utf-8'))
-      case '/home.js': return res.end(fs.readFileSync(path.join(__dirname, 'static', 'home', 'home.js'), 'utf-8'))
-      case '/messages': return res.end(JSON.stringify(await db.getMessages()))
-      case '/dialogs': return res.end(JSON.stringify(await db.getDialogs(Number(credentionals.user_id))))
-    }
-  }
-  else {
-    res.writeHead(404)
-    return res.end("Error 404")
-  }
+
+  req.credentionals = credentionals
+  next()
 }
+
+  app.get('/', guarded, (req, res) => {
+    res.sendFile(path.join(__dirname, 'static', 'home', 'home.html'))
+  })
+  app.get('/home.css', guarded, (req, res) => {
+    res.sendFile(path.join(__dirname, 'static', 'home', 'home.css'))
+  })
+  app.get('/home.js', guarded, (req, res) => {
+    res.sendFile(path.join(__dirname, 'static', 'home', 'home.js'))
+  })
+
+  app.get('/messages', guarded, async (req, res) => {
+    res.json(await db.getMessages())
+  })
+  app.get('/dialogs', guarded, async (req, res) => {
+    res.json(await db.getDialogs(Number(req.credentionals.user_id)))
+  })
 
 const io = new Server(server)
 
